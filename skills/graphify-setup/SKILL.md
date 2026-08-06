@@ -163,7 +163,7 @@ graphify --help 2>/dev/null | head -3 || echo "CLI --help FAILED"
 
 ## Step 6 — Determine the Correct Python Interpreter
 
-The MCP server config must point to the **exact Python executable** that has `graphify` installed. Run:
+Confirm the **exact Python executable** that has `graphify` installed. Run:
 
 ```bash
 GRAPHIFY_BIN=$(which graphify 2>/dev/null)
@@ -188,163 +188,85 @@ fi
 echo "Using Python interpreter: $PYTHON"
 ```
 
-Store this value — you will need it to write the MCP config in Step 8.
+Store this value for running CLI verification and script checks.
 
 ---
 
-## Step 7 — Check if MCP Server Module is Available
+## Step 7 — Configure IDE Integration (Claude Code, Cursor, Antigravity, Gemini)
+
+Graphify integrates deeply with coding assistants to query the graph natively instead of grepping.
+
+### 7a — Detect Installed IDEs
+Run this script to detect which IDEs are installed and get setup recommendations:
 
 ```bash
-"$PYTHON" -c "import graphify.serve; print('MCP server module: OK')" 2>/dev/null \
-  || echo "MCP server module NOT found — graphify.serve is missing"
+# Check Claude Code
+HAS_CLAUDE=false
+if command -v claude >/dev/null 2>&1 || [ -d "$HOME/.claude" ]; then
+    HAS_CLAUDE=true
+fi
+
+# Check Cursor
+HAS_CURSOR=false
+if command -v cursor >/dev/null 2>&1 || [ -d "/Applications/Cursor.app" ] || [ -d "$HOME/Library/Application Support/Cursor" ] || [ -d "$HOME/.config/Cursor" ]; then
+    HAS_CURSOR=true
+fi
+
+echo "IDE detection:"
+echo "  Claude Code: $HAS_CLAUDE"
+echo "  Cursor: $HAS_CURSOR"
 ```
 
-If the serve module is missing:
+### 7b — Setup Claude Code Integration
+Claude Code uses a custom `/graphify` skill, `CLAUDE.md` registration, and PreToolUse hook-guards in `~/.claude/settings.json`.
 
-> ⚠️ The `graphify.serve` module (MCP server) was not found in this installation.
-> This can happen with older versions of graphifyy.
-> Try upgrading: `uv tool install --upgrade graphifyy` (or `pip install --upgrade graphifyy`).
+When registering or updating Claude Code, make sure the skill instructs the agent to:
+- Run `/graphify . --code-only` followed by `graphify export html`.
+- **Directory Safety Check**: Verify the current directory is a dedicated project repository and **NOT** a root/system-adjacent directory (like home `~`, Desktop, Documents, or Downloads).
 
-If it appears after upgrade, continue. If it still fails after upgrade, tell the user:
-
-> ❌ The graphify MCP server module is unavailable. The graph-building CLI still works, but the 10 MCP tools will not be available to the agent until this is resolved. Check https://github.com/safishamsi/graphify for the minimum version that includes `graphify.serve`.
-
----
-
-## Step 8 — Write the MCP Server Config
-
-The global MCP config lives at:
-
-```
-~/.gemini/config/mcp_config.json
-```
-
-> ⚠️ **IMPORTANT — Read first:** The file may already exist with other MCP servers configured (e.g. `graphify-docs`). You MUST preserve all existing entries. Never overwrite the whole file blindly — merge your new `graphify` entry into the existing JSON.
-
-### 8a — Read the existing config (if it exists)
-
+To register Claude Code globally:
 ```bash
-cat ~/.gemini/config/mcp_config.json 2>/dev/null || echo '{"mcpServers":{}}'
+graphify install
 ```
 
-### 8b — Explain and Confirm Default Graph Setup
-
-Before writing the config, **explain what a default graph is** and **ask the user if they want to configure one**:
-
-> 💡 **What is a Default Graph?**
-> The `--graph` argument specifies a fallback `graph.json` file for the MCP server.
-> 
-> **Use cases:**
-> - **Primary Workspace (Zero-Config)**: If set, tool calls like `query_graph`, `god_nodes`, or `shortest_path` run immediately on your main repo without needing to pass a `project_path` argument on every invocation.
-> - **Dynamic Mode (Keep Empty)**: If omitted, the server runs with `args: ["-m", "graphify.serve"]`. Tools will resolve graphs dynamically per tool call via `project_path`, or fall back to `./graphify-out/graph.json` in whichever working directory the agent is running.
-
-Ask the user explicitly:
-
-> 📂 **Would you like to set up a default graph path for a primary project?**
-> 
-> 1. **Yes** — Provide the absolute path to your primary repository (e.g., `/Users/yourname/Documents/GitHub/my-project`).
-> 2. **No / Skip** — Keep it clean (Dynamic mode — pass `project_path` per tool call or rely on current working directory).
-
-If the user provides a path:
-```
-GRAPH_ARGS='["-m", "graphify.serve", "--graph", "<user_path>/graphify-out/graph.json"]'
-```
-
-If the user chooses No / Skip:
-```
-GRAPH_ARGS='["-m", "graphify.serve"]'
-```
-
-### 8c — Write the updated config
-
-Merge the `graphify` entry into the existing `mcpServers` object. The final `graphify` block will look like:
-
-**With default graph:**
-```json
-"graphify": {
-  "command": "<PYTHON_EXECUTABLE>",
-  "args": [
-    "-m",
-    "graphify.serve",
-    "--graph",
-    "<user_path>/graphify-out/graph.json"
-  ]
-}
-```
-
-**Without default graph (clean / dynamic mode):**
-```json
-"graphify": {
-  "command": "<PYTHON_EXECUTABLE>",
-  "args": [
-    "-m",
-    "graphify.serve"
-  ]
-}
-```
-
-Full example of a complete config after merging (dynamic mode):
-
-```json
-{
-  "mcpServers": {
-    "graphify": {
-      "command": "/Users/yourname/.local/share/uv/tools/graphifyy/bin/python",
-      "args": [
-        "-m",
-        "graphify.serve"
-      ]
-    },
-    "graphify-docs": {
-      "url": "https://graphify.com/api/mcp"
-    }
-  }
-}
-```
-
-Write the merged JSON to `~/.gemini/config/mcp_config.json`.
-
----
-
-## Step 9 — Verify All 10 MCP Tools Register
-
-After writing the config, verify the MCP server can start and all 10 tools are available:
-
+Or repository-local:
 ```bash
-"$PYTHON" -c "
-try:
-    from graphify.serve import get_tools
-    tools = get_tools()
-    names = [t['name'] if isinstance(t, dict) else t.name for t in tools]
-    print(f'MCP tools found: {len(names)}')
-    for n in names:
-        print(f'  OK: {n}')
-    expected = [
-        'query_graph', 'get_node', 'get_neighbors', 'get_community',
-        'god_nodes', 'graph_stats', 'shortest_path',
-        'list_prs', 'get_pr_impact', 'triage_prs'
-    ]
-    missing = [e for e in expected if e not in names]
-    if missing:
-        print(f'MISSING tools: {missing}')
-    else:
-        print('All 10 tools confirmed.')
-except Exception as e:
-    print(f'Could not introspect tools via get_tools(): {e}')
-    print('Trying serve --help smoke test instead...')
-" 2>/dev/null
+graphify install --project
 ```
 
-If introspection fails (the API may differ by version), fall back to a smoke test:
+### 7c — Setup Cursor Integration
+Cursor uses an always-on Cursor rule (`.cursor/rules/graphify.mdc`) to instruct Cursor's agent to query the local graph.
 
+To set up the rule in your project repository:
 ```bash
-"$PYTHON" -m graphify.serve --help 2>/dev/null | head -5 \
-  || echo "serve module --help not available; check graphifyy version"
+graphify cursor install
+```
+This writes `.cursor/rules/graphify.mdc` with `alwaysApply: true`.
+
+*Note*: Ensure that the generated `.cursor/rules/graphify.mdc` instructs Cursor's agent to:
+1. Always run `/graphify . --code-only` and `graphify export html` when building/updating.
+2. Refuse to run `/graphify` in home (`~`), Desktop, Downloads, or Documents directories to prevent indexing huge amounts of system files.
+
+### 7d — Setup Antigravity Integration
+Antigravity uses custom rules, workflows, and a local skill folder under the `.agents/` workspace directory.
+
+To set up the integration in your repository:
+```bash
+graphify antigravity install
+```
+This writes `.agents/rules`, `.agents/workflows`, and the graphify skill files into your project.
+
+### 7e — Setup Gemini CLI Integration
+Gemini CLI uses a custom `GEMINI.md` steering block and BeforeTool hook guards.
+
+To register Gemini CLI globally:
+```bash
+graphify gemini install
 ```
 
 ---
 
-## Step 10 — Final Status Report
+## Step 8 — Final Status Report
 
 After completing all steps, print a clean summary to the user:
 
@@ -353,24 +275,16 @@ After completing all steps, print a clean summary to the user:
 graphify setup complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Package      : graphifyy vX.Y.Z
-Installed via: [uv / pipx / pip]
-Python       : <path to interpreter>
+Package         : graphifyy vX.Y.Z
+Installed via   : [uv / pipx / pip]
+Python          : <path to interpreter>
+IDE Integrations: [Claude Code / Cursor / Antigravity / Gemini / None]
 
-MCP server config : ~/.gemini/config/mcp_config.json
-Default graph     : <graph path or "not set — update manually">
-
-10 MCP Tools registered:
-  query_graph    — BFS/DFS search across the knowledge graph
-  get_node       — Full details for a node by label or ID
-  get_neighbors  — All direct neighbors with edge details
-  get_community  — All nodes in a community by ID
-  god_nodes      — Most connected hub nodes (core abstractions)
-  graph_stats    — Summary stats: nodes, edges, communities
-  shortest_path  — Shortest path between two concepts
-  list_prs       — Open GitHub PRs with graph impact
-  get_pr_impact  — Detailed impact for a specific PR
-  triage_prs     — All actionable PRs ranked by priority
+Core Commands:
+  graphify query "<q>"      — BFS/DFS traversal search across codebase graph
+  graphify path "<A>" "<B>" — Shortest path between two code symbols
+  graphify explain "<C>"    — Detailed explanation of a specific code node
+  graphify update .         — Update the graph incrementally (AST-only)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
@@ -378,16 +292,16 @@ Default graph     : <graph path or "not set — update manually">
 Then tell the user these **important notes:**
 
 > **Next steps:**
-> 1. **Restart your agent/IDE** to pick up the new MCP server config. The config change is NOT hot-reloaded.
-> 2. **Build your first graph:** open a project and ask the agent to run `/graphify .` on it.
-> 3. **Update the default graph path** in `~/.gemini/config/mcp_config.json` whenever you switch projects, OR pass `project_path` per-call to any MCP tool at query time.
+> 1. **Build your first graph**: Open a project directory (ensuring it is a dedicated repo and NOT a root system folder like home, Documents, Downloads, or Desktop) and ask the agent to run `/graphify . --code-only` and then `graphify export html` on it.
 >
 > **Things to remember:**
-> - The MCP server only activates after the agent restarts.
+> - ⚠️ **Directory Safety Guard**: **NEVER** run `/graphify` or `graphify` commands on home (`~`), desktop (`~/Desktop`), downloads (`~/Downloads`), documents (`~/Documents`), or other large system/user-wide root folders. Only run it within a dedicated code project/repository. Running it on large, non-project folders will trigger massive file crawls, leading to high CPU load and heavy token usage.
+> - **Code-Only Flag**: Use the `--code-only` flag to avoid semantic extraction overhead unless doc/image indexing is explicitly needed.
+> - **HTML Export**: Run `graphify export html` to generate or refresh the interactive community HTML visualization at `graphify-out/graph.html`.
 > - `list_prs`, `get_pr_impact`, and `triage_prs` require a `GITHUB_TOKEN` env variable for GitHub API access.
-> - `query_graph`, `get_node`, and all other graph tools require a built `graphify-out/graph.json` — run `/graphify <path>` first.
-> - If you switch to a different project, either update `mcp_config.json` or pass `"project_path": "/abs/path/to/project"` as an argument to any MCP tool call.
 > - The PyPI name is `graphifyy` (double-y); the import/CLI name is `graphify` (single-y) — do not mix them up.
 > - If you set `GEMINI_API_KEY` or `GOOGLE_API_KEY`, semantic extraction (docs/papers/images) will use Gemini. Without it, extraction falls back to the running agent session.
 
 See `references/troubleshooting.md` for common error scenarios and fixes.
+
+
