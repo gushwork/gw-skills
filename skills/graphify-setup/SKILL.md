@@ -38,7 +38,7 @@ python3 --version 2>/dev/null || python --version 2>/dev/null
 
 If neither command returns a version, **stop and tell the user:**
 
-> **Python is not installed or not on PATH.**
+> ⚠️ **Python is not installed or not on PATH.**
 > Install Python 3.9+ from https://www.python.org/downloads/ (or via `brew install python` on macOS, `sudo apt install python3` on Ubuntu/Debian).
 > Once Python is installed, re-run this setup.
 
@@ -77,7 +77,7 @@ graphify --version 2>/dev/null || python3 -c "import graphify; print(graphify.__
 
 If graphify is already installed and up to date, **print:**
 ```
-graphify vX.Y.Z is already installed.
+✅ graphify vX.Y.Z is already installed.
 ```
 Then skip to **Step 5** (verify MCP server).
 
@@ -126,7 +126,7 @@ python3 -m pip install graphifyy --upgrade --break-system-packages
 
 If all three methods fail, **stop and tell the user:**
 
-> **Could not install graphifyy automatically.**
+> ❌ **Could not install graphifyy automatically.**
 > Try manually:
 > - `uv tool install graphifyy` (if using uv)
 > - `pipx install graphifyy` (if using pipx)
@@ -153,7 +153,7 @@ graphify --help 2>/dev/null | head -3 || echo "CLI --help FAILED"
 
 **If the CLI is missing from PATH but the import works** (common with uv or pipx), note this to the user:
 
-> The `graphify` binary is not on your system PATH, but the Python module is importable.
+> ℹ️ The `graphify` binary is not on your system PATH, but the Python module is importable.
 > The MCP server will be configured to call Python directly (not the CLI binary), which is fine.
 > To add graphify to PATH permanently:
 > - uv: run `uv tool update-shell` and restart your terminal.
@@ -295,7 +295,7 @@ Then tell the user these **important notes:**
 > 1. **Build your first graph**: Open a project directory (ensuring it is a dedicated repo and NOT a root system folder like home, Documents, Downloads, or Desktop) and ask the agent to run `/graphify . --code-only` and then `graphify export html` on it.
 >
 > **Things to remember:**
-> - **Directory Safety Guard**: **NEVER** run `/graphify` or `graphify` commands on home (`~`), desktop (`~/Desktop`), downloads (`~/Downloads`), documents (`~/Documents`), or other large system/user-wide root folders. Only run it within a dedicated code project/repository. Running it on large, non-project folders will trigger massive file crawls, leading to high CPU load and heavy token usage.
+> - ⚠️ **Directory Safety Guard**: **NEVER** run `/graphify` or `graphify` commands on home (`~`), desktop (`~/Desktop`), downloads (`~/Downloads`), documents (`~/Documents`), or other large system/user-wide root folders. Only run it within a dedicated code project/repository. Running it on large, non-project folders will trigger massive file crawls, leading to high CPU load and heavy token usage.
 > - **Code-Only Flag**: Use the `--code-only` flag to avoid semantic extraction overhead unless doc/image indexing is explicitly needed.
 > - **HTML Export**: Run `graphify export html` to generate or refresh the interactive community HTML visualization at `graphify-out/graph.html`.
 > - `list_prs`, `get_pr_impact`, and `triage_prs` require a `GITHUB_TOKEN` env variable for GitHub API access.
