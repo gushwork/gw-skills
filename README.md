@@ -16,6 +16,12 @@ gw-skills/
     │   │   └── troubleshooting.md
     │   └── scripts/
     │       └── detect_installer.sh
+    ├── gushwork-pr-review-setup/
+    │   ├── SKILL.md
+    │   └── references/
+    │       ├── caller-workflows.md
+    │       ├── repo-guidance.md
+    │       └── troubleshooting.md
     └── gushwork-ui-design/
         ├── SKILL.md
         └── references/
@@ -41,6 +47,14 @@ Covers:
 - 12 non-negotiable design rules (divided cards, `shadow-s3`/`s4`, clean tables, Recharts styling)
 - Copy-paste component catalog & Tailwind v4 `@theme` setup
 
+### 3. [gushwork-pr-review-setup](file:///skills/gushwork-pr-review-setup/SKILL.md)
+Use when adding Gushwork's shared Claude GitHub Actions (from `gushwork/github-config`) to a repository, or when fixing a repo where they are not posting, are skipped, or post under a person's name.
+Covers:
+- Org prerequisite checks (Claude GitHub App, `CLAUDE_CODE_OAUTH_TOKEN` secret)
+- Caller workflows for the Claude PR review + reviewer guide, the security review, `@claude` mentions and PR title validation
+- Repo guidance: `REVIEW.md`, security scan instructions, `@claude` instructions and allowed tools per stack, PR template
+- Post-merge verification, required checks, and troubleshooting
+
 ## How to Install/Use Custom Skills
 
 To load these skills into your agent context, copy or symlink the directories from this repository to either your **Global Customizations Root** or your **Workspace Customizations Root**:
@@ -55,6 +69,7 @@ For example:
 ```bash
 cp -R skills/graphify-setup ~/.gemini/config/skills/
 cp -R skills/gushwork-ui-design ~/.gemini/config/skills/
+cp -R skills/gushwork-pr-review-setup ~/.gemini/config/skills/
 ```
 
 ### 2. Workspace-Specific Installation
@@ -68,4 +83,5 @@ For example:
 mkdir -p <workspace-root>/.agents/skills
 cp -R skills/graphify-setup <workspace-root>/.agents/skills/
 cp -R skills/gushwork-ui-design <workspace-root>/.agents/skills/
+cp -R skills/gushwork-pr-review-setup <workspace-root>/.agents/skills/
 ```
