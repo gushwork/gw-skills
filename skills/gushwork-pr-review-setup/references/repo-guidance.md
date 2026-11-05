@@ -7,14 +7,17 @@ real failure modes. A rule that would apply to any repo does not belong here.
 ## REVIEW.md
 
 Root of the repo. The PR review reads it first, and it overrides the generic review advice.
-Keep it under ~60 lines.
+Err on the side of verbose. Cover the nuances of this repo: why each rule exists, the
+edge cases, known gotchas, past incidents, and which paths or modules behave differently from
+what a newcomer would expect. A longer, specific file gives better reviews than a short one.
+Add detail from the repo's history and conventions; cut only generic advice.
 
 ```markdown
 # Review rules for <Repo name>
 
 The Claude PR review reads this file before every review (`gushwork/github-config`,
 `claude-pr-review.yml`). It sits on top of `AGENTS.md`, which still applies in full. Keep
-this file short and about review: what counts as a real problem here, and what to ignore.
+this file about review, and detailed: what counts as a real problem here, and what to ignore.
 
 ## What failure looks like here
 

@@ -133,7 +133,7 @@ Add `valid-pr.yml` too if the repo does not already check PR titles. It uses `pu
 
 ## Step 5 — Add the review guidance
 
-1. **`REVIEW.md`** at the repo root. Use the template in [references/repo-guidance.md](references/repo-guidance.md#reviewmd). Keep it short and specific to this repo: numbered Important rules (what failure looks like here, with file paths), Nit rules, paths to skip. Do not copy generic advice: the shared prompt already covers logic errors, races, blast radius and missing tests.
+1. **`REVIEW.md`** at the repo root. Use the template in [references/repo-guidance.md](references/repo-guidance.md#reviewmd). Keep it specific to this repo and fairly verbose: explain why each rule exists and cover the repo's nuances, edge cases and gotchas (a longer, detailed file beats a terse one). numbered Important rules (what failure looks like here, with file paths), Nit rules, paths to skip. Do not copy generic advice: the shared prompt already covers logic errors, races, blast radius and missing tests.
 2. **`.github/security-review/scan-instructions.md`** for repos with auth, tenants, money, external input or secrets. Template in [references/repo-guidance.md](references/repo-guidance.md#security-scan-instructions). Name concrete paths and identifiers. Categories listed there are reported as vulnerabilities even if the generic exclusions (DoS, rate limits, resource use, races, logging) would drop them.
 3. **`.github/security-review/false-positive-instructions.md`**: only when the user has seen repeated false positives. Skip on first setup.
 
