@@ -79,7 +79,7 @@ Stop and tell the user if:
 
 The `orgs/gushwork/installations` and secret calls need org admin. If they return 403, say you could not verify and continue; the first run shows whether access works.
 
-If the repo already has Claude workflows (for example a direct `anthropics/claude-code-action` job or an older `@v2.x` pin), replace them with the callers below instead of adding a second set. Two review workflows post duplicate comments.
+If the repo already has Claude workflows (for example a direct `anthropics/claude-code-action` job or an older `@v2.x` pin), replace them with the callers below instead of adding a second set. Two review workflows post duplicate comments. Before you replace an inline workflow, read its prompt: the repo-specific parts (stack, packages, security concerns, review rules) move into `REVIEW.md`, the security scan instructions and the `@claude` `instructions` in Steps 4 and 5. Note behaviour changes for the PR description (model, `allowed_bots`, the account that posts).
 
 ---
 
@@ -97,7 +97,14 @@ Read before writing anything:
 
 ## Step 3 — Add the caller workflows
 
-Create a branch first (`git checkout -b ci/claude-actions`). Copy the caller files exactly from [references/caller-workflows.md](references/caller-workflows.md). Change only:
+Create the branch from the remote default branch, not from a local checkout, which may be stale or diverged:
+
+```bash
+git fetch origin
+git checkout -b ci/claude-actions "origin/$DEFAULT"   # or: git worktree add ../<repo>-claude -b ci/claude-actions "origin/$DEFAULT"
+```
+
+Never `git pull` into an existing clone whose local default branch has diverged from origin; use a fresh branch or worktree. Copy the caller files exactly from [references/caller-workflows.md](references/caller-workflows.md). Change only:
 
 - the `with:` block of `claude.yml` (`instructions`, `allowed_tools`, `allowed_bots`), see Step 4;
 - optionally `model` / `max_turns` on the reviews (defaults: `claude-sonnet-5-5`, 100 turns for PR review, 60 for security).
@@ -155,20 +162,31 @@ The markers are optional. Without them the guide is still appended at the bottom
 ## Step 7 — Check locally and open the PR
 
 ```bash
-# Lint the workflows (if actionlint is installed; CI in github-config uses 1.7.7).
-actionlint .github/workflows/claude*.yml .github/workflows/valid-pr.yml
+# Lint the workflows if actionlint is installed (github-config CI uses 1.7.7); otherwise at least parse the YAML.
+actionlint .github/workflows/claude*.yml .github/workflows/valid-pr.yml \
+  || ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f); puts "yaml ok #{f}" }' .github/workflows/claude*.yml
+
+# The @claude instructions must not contain ", $ or lines starting with #.
+sed -n '/instructions: |/,$p' .github/workflows/claude.yml | tail -n +2 | grep -nE '"|\$|^\s*#' && echo "STOP: fix instructions"
 
 # No inherited secrets, and the pin is right.
 grep -n "secrets: inherit" .github/workflows/*.yml && echo "STOP: remove secrets: inherit"
 grep -n "gushwork/github-config" .github/workflows/*.yml
 ```
 
-Check the `instructions` text has no `"`, `$` or lines starting with `#`.
-
 Commit with a Conventional Commit title, for example `ci: add shared Claude review, security review and @claude workflows`, push, and open the PR. In the PR description say:
 - which workflows were added and which files Claude reads;
 - that the Claude review and security review skip this PR because it changes their caller files, so it needs a human review;
 - how to revert (delete the caller files, or pin an older tag).
+
+After pushing, check the setup PR's own runs. They prove the callers resolve and the permissions are accepted, even though Claude does not review:
+
+```bash
+gh run list --branch ci/claude-actions --json workflowName,status,conclusion
+gh run view <run-id> --log | grep "claude-code-action.__run;outcome"
+```
+
+Expected: both runs `success`, and the action step `outcome=skipped`. `startup_failure` means a `permissions:` block is wrong.
 
 Do not merge it yourself unless the user asks.
 

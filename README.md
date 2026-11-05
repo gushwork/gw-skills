@@ -57,31 +57,37 @@ Covers:
 
 ## How to Install/Use Custom Skills
 
-To load these skills into your agent context, copy or symlink the directories from this repository to either your **Global Customizations Root** or your **Workspace Customizations Root**:
+Install skills with the [`skills` CLI](https://github.com/vercel-labs/skills) (`npx skills add`). No clone needed.
 
 ### 1. Global Installation (Recommended)
-Place the skill folders inside:
-```
-~/.gemini/config/skills/
-```
-
-For example:
+Add `-g` to install for your user, available in every project:
 ```bash
-cp -R skills/graphify-setup ~/.gemini/config/skills/
-cp -R skills/gushwork-ui-design ~/.gemini/config/skills/
-cp -R skills/gushwork-pr-review-setup ~/.gemini/config/skills/
+# List skills in the repo
+npx skills add gushwork/gw-skills --list
+
+# Install one skill globally
+npx skills add gushwork/gw-skills --skill graphify-setup -g
+
+# Install several skills
+npx skills add gushwork/gw-skills --skill graphify-setup --skill gushwork-ui-design -g
+
+# Install all skills, all agents, no prompts
+npx skills add gushwork/gw-skills --all -g
 ```
 
 ### 2. Workspace-Specific Installation
-Place the skill folders under a `.agents` folder at the root of your project:
-```
-<workspace-root>/.agents/skills/
+Run from your project root, without `-g`. Skills install into the project (e.g. `.agents/skills/`) and can be committed so the whole team shares them:
+```bash
+cd <workspace-root>
+
+# Install one skill into this project
+npx skills add gushwork/gw-skills --skill gushwork-pr-review-setup
+
+# Install for a specific agent only
+npx skills add gushwork/gw-skills --skill gushwork-ui-design -a claude-code -a cursor
+
+# Install all skills into this project
+npx skills add gushwork/gw-skills --all
 ```
 
-For example:
-```bash
-mkdir -p <workspace-root>/.agents/skills
-cp -R skills/graphify-setup <workspace-root>/.agents/skills/
-cp -R skills/gushwork-ui-design <workspace-root>/.agents/skills/
-cp -R skills/gushwork-pr-review-setup <workspace-root>/.agents/skills/
-```
+Update later with `npx skills update`; remove with `npx skills remove <skill-name>`.
